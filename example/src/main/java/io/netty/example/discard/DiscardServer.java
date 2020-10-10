@@ -35,7 +35,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 public final class DiscardServer {
 
     static final boolean SSL = System.getProperty("ssl") != null;
-    static final int PORT = Integer.parseInt(System.getProperty("port", "8009"));
+    static final int PORT = Integer.parseInt(System.getProperty("port", "8888"));
 
     public static void main(String[] args) throws Exception {
         // Configure SSL.
@@ -47,30 +47,32 @@ public final class DiscardServer {
             sslCtx = null;
         }
 
+        //NioEventLoopGroup循环，不停地检测IO事件，处理IO事件，执行任务
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
+            //ServerBootstrap 是服务端的一个启动辅助类，通过给他设置一系列参数来绑定端口启动服务
             ServerBootstrap b = new ServerBootstrap();
+            //bossGroup的作用就是不断地accept到新的连接，将新的连接丢给workerGroup来处理
             b.group(bossGroup, workerGroup)
-             .channel(NioServerSocketChannel.class)
-             .handler(new LoggingHandler(LogLevel.INFO))
-             .childHandler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc()));
-                     }
-                     p.addLast(new DiscardServerHandler());
-                 }
-             });
-
-            // Bind and start to accept incoming connections.
+                    //channel在netty里面是一大核心概念，可以理解为一条channel就是一个连接或者一个服务端bind动作
+                    .channel(NioServerSocketChannel.class)
+                    //表示服务器启动过程中，需要经过哪些流程，这里SimpleServerHandler最终的顶层接口为ChannelHander，是netty的一大核心概念，表示数据流经过的处理器，可以理解为流水线上的每一道关卡
+                    .handler(new LoggingHandler(LogLevel.INFO))
+                    //表示一条新的连接进来之后，该怎么处理，也就是上面所说的，老板如何给工人配活
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) {
+                            ChannelPipeline p = ch.pipeline();
+                            if (sslCtx != null) {
+                                p.addLast(sslCtx.newHandler(ch.alloc()));
+                            }
+                            p.addLast(new DiscardServerHandler());
+                        }
+                    });
+            // 绑定端口，等待服务器启动完毕
             ChannelFuture f = b.bind(PORT).sync();
-
-            // Wait until the server socket is closed.
-            // In this example, this does not happen, but you can do that to gracefully
-            // shut down your server.
+            // 等待服务端关闭socket
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

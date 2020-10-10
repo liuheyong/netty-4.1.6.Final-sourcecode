@@ -16,20 +16,10 @@
 
 package io.netty.bootstrap;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultChannelPromise;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ReflectiveChannelFactory;
+import io.netty.channel.*;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import io.netty.util.internal.StringUtil;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -316,6 +306,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            //最终是调用到 ReflectiveChannelFactory.newChannel()
             channel = channelFactory.newChannel();
             init(channel);
         } catch (Throwable t) {
@@ -352,7 +343,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     private static void doBind0(
             final ChannelFuture regFuture, final Channel channel,
-            final SocketAddress localAddress, final ChannelPromise promise) {
+        final SocketAddress localAddress, final ChannelPromise promise) {
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
@@ -436,12 +427,96 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return copiedMap(attrs);
     }
 
-    @Override
+    public EventLoopGroup getGroup() {
+        return this.group;
+    }
+
+    public ChannelFactory<? extends C> getChannelFactory() {
+        return this.channelFactory;
+    }
+
+    public SocketAddress getLocalAddress() {
+        return this.localAddress;
+    }
+
+    public Map<ChannelOption<?>, Object> getOptions() {
+        return this.options;
+    }
+
+    public Map<AttributeKey<?>, Object> getAttrs() {
+        return this.attrs;
+    }
+
+    public ChannelHandler getHandler() {
+        return this.handler;
+    }
+
+    public void setGroup(EventLoopGroup group) {
+        this.group = group;
+    }
+
+    public void setChannelFactory(ChannelFactory<? extends C> channelFactory) {
+        this.channelFactory = channelFactory;
+    }
+
+    public void setLocalAddress(SocketAddress localAddress) {
+        this.localAddress = localAddress;
+    }
+
+    public void setHandler(ChannelHandler handler) {
+        this.handler = handler;
+    }
+
+    public boolean equals(final Object o) {
+        if (o == this) return true;
+        if (!(o instanceof AbstractBootstrap)) return false;
+        final AbstractBootstrap<?, ?> other = (AbstractBootstrap<?, ?>) o;
+        if (!other.canEqual((Object) this)) return false;
+        final Object this$group = this.getGroup();
+        final Object other$group = other.getGroup();
+        if (this$group == null ? other$group != null : !this$group.equals(other$group)) return false;
+        final Object this$channelFactory = this.getChannelFactory();
+        final Object other$channelFactory = other.getChannelFactory();
+        if (this$channelFactory == null ? other$channelFactory != null : !this$channelFactory.equals(other$channelFactory)) return false;
+        final Object this$localAddress = this.getLocalAddress();
+        final Object other$localAddress = other.getLocalAddress();
+        if (this$localAddress == null ? other$localAddress != null : !this$localAddress.equals(other$localAddress)) return false;
+        final Object this$options = this.getOptions();
+        final Object other$options = other.getOptions();
+        if (this$options == null ? other$options != null : !this$options.equals(other$options)) return false;
+        final Object this$attrs = this.getAttrs();
+        final Object other$attrs = other.getAttrs();
+        if (this$attrs == null ? other$attrs != null : !this$attrs.equals(other$attrs)) return false;
+        final Object this$handler = this.getHandler();
+        final Object other$handler = other.getHandler();
+        if (this$handler == null ? other$handler != null : !this$handler.equals(other$handler)) return false;
+        return true;
+    }
+
+    protected boolean canEqual(final Object other) {
+        return other instanceof AbstractBootstrap;
+    }
+
+    public int hashCode() {
+        final int PRIME = 59;
+        int result = 1;
+        final Object $group = this.getGroup();
+        result = result * PRIME + ($group == null ? 43 : $group.hashCode());
+        final Object $channelFactory = this.getChannelFactory();
+        result = result * PRIME + ($channelFactory == null ? 43 : $channelFactory.hashCode());
+        final Object $localAddress = this.getLocalAddress();
+        result = result * PRIME + ($localAddress == null ? 43 : $localAddress.hashCode());
+        final Object $options = this.getOptions();
+        result = result * PRIME + ($options == null ? 43 : $options.hashCode());
+        final Object $attrs = this.getAttrs();
+        result = result * PRIME + ($attrs == null ? 43 : $attrs.hashCode());
+        final Object $handler = this.getHandler();
+        result = result * PRIME + ($handler == null ? 43 : $handler.hashCode());
+        return result;
+    }
+
     public String toString() {
-        StringBuilder buf = new StringBuilder()
-            .append(StringUtil.simpleClassName(this))
-            .append('(').append(config()).append(')');
-        return buf.toString();
+        return "AbstractBootstrap(group=" + this.getGroup() + ", channelFactory=" + this.getChannelFactory() + ", localAddress=" + this.getLocalAddress() + ", options=" + this.getOptions() + ", attrs=" + this.getAttrs() + ", handler=" + this.getHandler() + ")";
     }
 
     static final class PendingRegistrationPromise extends DefaultChannelPromise {
