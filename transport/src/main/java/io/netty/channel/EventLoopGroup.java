@@ -29,6 +29,16 @@ public interface EventLoopGroup extends EventExecutorGroup {
     @Override
     EventLoop next();
 
+    // TODO  static修饰符定义静态方法 子类不能重写
+    static void staticMethod() {
+        System.out.println("EventLoopGroup接口中的静态方法");
+    }
+
+    // TODO  default修饰符定义默认方法 子类可以重写也可以不重写
+    default void defaultMethod() {
+        System.out.println("EventLoopGroup接口中的默认方法");
+    }
+
     /**
      * Register a {@link Channel} with this {@link EventLoop}. The returned {@link ChannelFuture}
      * will get notified once the registration was complete.
