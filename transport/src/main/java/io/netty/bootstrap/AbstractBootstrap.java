@@ -307,7 +307,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         Channel channel = null;
         try {
             //最终是调用到 ReflectiveChannelFactory.newChannel()
+            // TODO 第一步、创建server对应的channel，创建各大组件，包括
+            //  ChannelConfig,ChannelId,ChannelPipeline,ChannelHandler,Unsafe等
             channel = channelFactory.newChannel();
+            // TODO 第二步、初始化server对应的channel，设置一些attr，option，以及设置子
+            //  channel的attr，option，给server的channel添加新channel接入器，并出发addHandler,
+            //  register等事件
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -317,7 +322,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
             return new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE).setFailure(t);
         }
-
+        // TODO 第三步、调用到jdk底层做端口绑定，并触发active事件，active触发的时候，真正做服务端口绑定
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {

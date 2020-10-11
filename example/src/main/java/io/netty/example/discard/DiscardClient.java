@@ -60,9 +60,9 @@ public final class DiscardClient {
                             p.addLast(new DiscardClientHandler());
                         }
                     });
-            // Make the connection attempt.
+            // 尝试连接。
             ChannelFuture f = b.connect(HOST, PORT).sync();
-            // Wait until the connection is closed.
+            // 等待直到连接关闭。
             f.channel().closeFuture().sync();
         } finally {
             group.shutdownGracefully();

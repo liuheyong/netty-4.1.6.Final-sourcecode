@@ -139,6 +139,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     @Override
     void init(Channel channel) throws Exception {
+        // 1.设置option和attr
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             channel.config().setOptions(options);
@@ -152,7 +153,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 channel.attr(key).set(e.getValue());
             }
         }
-
+        // 2.设置新接入channel的option和attr
         ChannelPipeline p = channel.pipeline();
 
         final EventLoopGroup currentChildGroup = childGroup;
@@ -166,7 +167,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(childAttrs.size()));
         }
 
+        // 3.加入新连接处理器
         p.addLast(new ChannelInitializer<Channel>() {
+            //p.addLast()向serverChannel的流水线处理器中加入了一个
+            // ServerBootstrapAcceptor，从名字上就可以看出来，这是一个接入器，专门接受新请求，把新的请求扔给某个事件循环器
             @Override
             public void initChannel(Channel ch) throws Exception {
                 final ChannelPipeline pipeline = ch.pipeline();
