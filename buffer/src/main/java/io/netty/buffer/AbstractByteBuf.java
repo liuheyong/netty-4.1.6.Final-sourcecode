@@ -240,6 +240,21 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    /**
+     *@Author: liuheyong
+     *@date: 2020/10/17
+     *@Description: 确认是否可以进行数据写入
+     */
+    @Override
+    public ByteBuf ensureWritable(int minWritableBytes) {
+        if (minWritableBytes < 0) {
+            throw new IllegalArgumentException(String.format(
+                    "minWritableBytes: %d (expected: >= 0)", minWritableBytes));
+        }
+        ensureWritable0(minWritableBytes);
+        return this;
+    }
+
     protected final void adjustMarkers(int decrement) {
         int markedReaderIndex = this.markedReaderIndex;
         if (markedReaderIndex <= decrement) {
@@ -256,31 +271,31 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
-    @Override
-    public ByteBuf ensureWritable(int minWritableBytes) {
-        if (minWritableBytes < 0) {
-            throw new IllegalArgumentException(String.format(
-                    "minWritableBytes: %d (expected: >= 0)", minWritableBytes));
-        }
-        ensureWritable0(minWritableBytes);
-        return this;
-    }
-
+    /**
+    *@Author: liuheyong
+    *@date: 2020/10/17
+    *@Description: 数据是否可以写入——是否需要执行扩容逻辑
+    */
     private void ensureWritable0(int minWritableBytes) {
+         // 检查该ByteBuf对象的引用计数是否为0，保证该对象在写入之前是可访问的
+         //ensureAccessible();
+
+         // 可写，不必扩容
         if (minWritableBytes <= writableBytes()) {
             return;
         }
 
+        //下标越界
         if (minWritableBytes > maxCapacity - writerIndex) {
             throw new IndexOutOfBoundsException(String.format(
                     "writerIndex(%d) + minWritableBytes(%d) exceeds maxCapacity(%d): %s",
                     writerIndex, minWritableBytes, maxCapacity, this));
         }
 
-        // Normalize the current capacity to the power of 2.
+        //达到临界条件，开始执行扩容逻辑
+        // 计算新的容量，实际上为当前容量扩容至2的幂次方大小(具体是多少需要进行后续判断和计算)
         int newCapacity = alloc().calculateNewCapacity(writerIndex + minWritableBytes, maxCapacity);
-
-        // Adjust to the new capacity.
+        // 设置扩容后的容量
         capacity(newCapacity);
     }
 

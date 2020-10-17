@@ -36,6 +36,7 @@ import java.util.List;
  * +-----+-----+-----+
  * </pre>
  */
+// TODO 定长解码器
 public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
 
     //frameLength就是我们指定的长度

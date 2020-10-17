@@ -241,6 +241,11 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return StringUtil.simpleClassName(this) + "(directByDefault: " + directByDefault + ')';
     }
 
+    /**
+    *@Author: liuheyong
+    *@date: 2020/10/17
+    *@Description: ByteBuf扩容机制
+    */
     @Override
     public int calculateNewCapacity(int minNewCapacity, int maxCapacity) {
         if (minNewCapacity < 0) {
@@ -251,16 +256,16 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
                     "minNewCapacity: %d (expected: not greater than maxCapacity(%d)",
                     minNewCapacity, maxCapacity));
         }
-        final int threshold = 1048576 * 4; // 4 MiB page
-
+        // 扩容的阈值，4兆字节大小
+        final int threshold = 1048576 * 4;
         if (minNewCapacity == threshold) {
             return threshold;
         }
-
-        // If over threshold, do not double but just increase by threshold.
+        // 如果扩容后新的容量大于扩容的阈值，那么扩容的方式改为用新的容量加上阈值，
+        // 否则将新容量改为双倍大小进行扩容
         if (minNewCapacity > threshold) {
             int newCapacity = minNewCapacity / threshold * threshold;
-            if (newCapacity > maxCapacity - threshold) {
+            if (newCapacity + threshold > maxCapacity) {
                 newCapacity = maxCapacity;
             } else {
                 newCapacity += threshold;
@@ -268,12 +273,12 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
             return newCapacity;
         }
 
-        // Not over threshold. Double up to 4 MiB, starting from 64.
+        // 如果要扩容后新的容量小于4兆字节，则从64字节开始扩容，每次双倍扩容，
+        // 直到小于指定的新容量位置
         int newCapacity = 64;
         while (newCapacity < minNewCapacity) {
             newCapacity <<= 1;
         }
-
         return Math.min(newCapacity, maxCapacity);
     }
 }

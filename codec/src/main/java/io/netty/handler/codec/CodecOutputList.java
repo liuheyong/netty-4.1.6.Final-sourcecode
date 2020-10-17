@@ -40,7 +40,7 @@ final class CodecOutputList extends AbstractList<Object> implements RandomAccess
 
     private final Recycler.Handle<CodecOutputList> handle;
     private int size;
-    // 16的大小足以满足所有用户的99％。
+    // 16的大小足以满足所有用户的99％
     private Object[] array = new Object[16];
     private boolean insertSinceRecycled;
 

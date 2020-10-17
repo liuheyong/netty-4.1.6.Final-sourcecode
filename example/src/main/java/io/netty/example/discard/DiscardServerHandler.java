@@ -34,4 +34,9 @@ public class DiscardServerHandler extends SimpleChannelInboundHandler<Object> {
         cause.printStackTrace();
         ctx.close();
     }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        super.channelRead(ctx, msg);
+    }
 }

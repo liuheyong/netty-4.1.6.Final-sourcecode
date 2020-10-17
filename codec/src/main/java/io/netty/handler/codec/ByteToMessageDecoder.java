@@ -386,37 +386,33 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
      * @param in            the {@link ByteBuf} from which to read data
      * @param out           the {@link List} to which decoded messages should be added
+     *  开始解析数据
      */
     protected void callDecode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         try {
             while (in.isReadable()) {
                 int outSize = out.size();
-
                 //将out里的事件执行并且清空out
                 if (outSize > 0) {
                     fireChannelRead(ctx, out, outSize);
                     out.clear();
-
-                    //在继续解码之前，请检查是否已删除此处理程序。如果将其删除，则继续在缓冲区上操作是不安全的。
-                    // See:
-                    // - https://github.com/netty/netty/issues/4635
+                    // 在继续解码之前，请检查是否已删除此处理程序
+                    // 如果已将其删除，则继续在缓冲区上操作是不安全的。
                     if (ctx.isRemoved()) {
                         break;
                     }
                     outSize = 0;
                 }
-
                 int oldInputLength = in.readableBytes();
+                // 开始解析数据，如果解析出来数据，那么out的长度一定会改变
                 decode(ctx, in, out);
 
-                // Check if this handler was removed before continuing the loop.
-                // If it was removed, it is not safe to continue to operate on the buffer.
-                //
-                // See https://github.com/netty/netty/issues/1664
+                // 在继续循环之前，请检查是否已删除此处理程序。
+                // 如果已将其删除，则继续在缓冲区上操作是不安全的。
                 if (ctx.isRemoved()) {
                     break;
                 }
-
+                // 如果没有解析出来数据
                 if (outSize == out.size()) {
                     if (oldInputLength == in.readableBytes()) {
                         break;
@@ -430,7 +426,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                             StringUtil.simpleClassName(getClass()) +
                             ".decode() did not read anything but decoded a message.");
                 }
-
                 if (isSingleDecode()) {
                     break;
                 }

@@ -23,6 +23,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.FixedLengthFrameDecoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -68,6 +69,7 @@ public final class DiscardServer {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
                             p.addLast(new DiscardServerHandler());
+                            p.addLast(new FixedLengthFrameDecoder(3));
                         }
                     });
             // 绑定端口，等待服务器启动完毕
