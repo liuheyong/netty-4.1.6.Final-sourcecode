@@ -392,13 +392,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             while (in.isReadable()) {
                 int outSize = out.size();
 
+                //将out里的事件执行并且清空out
                 if (outSize > 0) {
                     fireChannelRead(ctx, out, outSize);
                     out.clear();
 
-                    // Check if this handler was removed before continuing with decoding.
-                    // If it was removed, it is not safe to continue to operate on the buffer.
-                    //
+                    //在继续解码之前，请检查是否已删除此处理程序。如果将其删除，则继续在缓冲区上操作是不安全的。
                     // See:
                     // - https://github.com/netty/netty/issues/4635
                     if (ctx.isRemoved()) {

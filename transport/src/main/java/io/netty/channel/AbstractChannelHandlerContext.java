@@ -348,6 +348,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     @Override
     public ChannelHandlerContext fireChannelRead(final Object msg) {
+        //寻找下一个绑定的Handler并且调用ChannelRead方法
         invokeChannelRead(findContextInbound(), msg);
         return this;
     }
@@ -358,12 +359,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         if (executor.inEventLoop()) {
             next.invokeChannelRead(m);
         } else {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    next.invokeChannelRead(m);
-                }
-            });
+            executor.execute(() -> next.invokeChannelRead(m));
         }
     }
 
@@ -942,6 +938,13 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return true;
     }
 
+    /**
+    * @Author: wenyixicodedog
+    * @Date:  2020-10-17
+    * @Param:
+    * @return:
+    * @Description:  寻找下一个绑定的Handler
+    */
     private AbstractChannelHandlerContext findContextInbound() {
         AbstractChannelHandlerContext ctx = this;
         do {
