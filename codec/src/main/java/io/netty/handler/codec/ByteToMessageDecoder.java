@@ -261,7 +261,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     numReads = 0;
                     discardSomeReadBytes();
                 }
-
                 int size = out.size();
                 decodeWasNull = !out.insertSinceRecycled();
                 fireChannelRead(ctx, out, size);
