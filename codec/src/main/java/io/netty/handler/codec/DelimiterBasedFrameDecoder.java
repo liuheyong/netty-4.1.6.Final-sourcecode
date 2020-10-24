@@ -57,13 +57,20 @@ import java.util.List;
  */
 public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
 
+    // ====================核心属性====================
+    //自定义的分隔符数量，可以为1个或者多个
     private final ByteBuf[] delimiters;
+    //每帧消息的最大长度
     private final int maxFrameLength;
+    //解码消息时，是否丢弃分隔符
     private final boolean stripDelimiter;
+    //是否开启快速失败机制(遇到错误时，是否立即抛出异常)
     private final boolean failFast;
+    //是否正在丢弃一个帧的消息
     private boolean discardingTooLongFrame;
+    //丢弃消息的总长度
     private int tooLongFrameLength;
-    /** Set only when decoding with "\n" and "\r\n" as the delimiter.  */
+    /** 仅在使用“ \ n”和“ \ r \ n”作为分隔符进行解码时设置. */
     private final LineBasedFrameDecoder lineBasedDecoder;
 
     /**
@@ -171,6 +178,7 @@ public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
             throw new IllegalArgumentException("empty delimiters");
         }
 
+        //分隔符是否是换行符(\n or \r\n)
         if (isLineBased(delimiters) && !isSubclass()) {
             lineBasedDecoder = new LineBasedFrameDecoder(maxFrameLength, stripDelimiter, failFast);
             this.delimiters = null;
@@ -228,13 +236,15 @@ public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
      *                          be created.
      */
     protected Object decode(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+        //如果分隔符是\r\n则用lineBasedDecoder解码器解析
         if (lineBasedDecoder != null) {
             return lineBasedDecoder.decode(ctx, buffer);
         }
-        // Try all delimiters and choose the delimiter which yields the shortest frame.
+        // 尝试所有定界符，然后选择产生最短帧的定界符。.
         int minFrameLength = Integer.MAX_VALUE;
         ByteBuf minDelim = null;
         for (ByteBuf delim: delimiters) {
+            //依次找到每个分隔符在buffer中的最短帧的长度delim
             int frameLength = indexOf(buffer, delim);
             if (frameLength >= 0 && frameLength < minFrameLength) {
                 minFrameLength = frameLength;
@@ -311,6 +321,7 @@ public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
      * Returns the number of bytes between the readerIndex of the haystack and
      * the first needle found in the haystack.  -1 is returned if no needle is
      * found in the haystack.
+     * 以needle作为分隔符在haystack中找到最短帧，如果找不到则返回-1
      */
     private static int indexOf(ByteBuf haystack, ByteBuf needle) {
         for (int i = haystack.readerIndex(); i < haystack.writerIndex(); i ++) {
