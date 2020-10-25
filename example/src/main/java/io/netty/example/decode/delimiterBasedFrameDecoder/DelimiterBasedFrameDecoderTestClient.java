@@ -35,7 +35,7 @@ public class DelimiterBasedFrameDecoderTestClient {
                         }
                     });
             ChannelFuture f = b.connect("127.0.0.1", 9000).sync();
-            System.out.println("Started FixedLengthFrameDecoderTestClient...");
+            System.out.println("Started DelimiterBasedFrameDecoderTestClient...");
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

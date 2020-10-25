@@ -31,9 +31,8 @@ public class DelimiterBasedFrameDecoderTestServer {
                         public void initChannel(SocketChannel ch) {
                             ByteBuf delimiter1 = Unpooled.copiedBuffer("%".getBytes());
                             ByteBuf delimiter2 = Unpooled.copiedBuffer("$".getBytes());
-                            ByteBuf delimiter3 = Unpooled.copiedBuffer("$$".getBytes());
                             ch.pipeline()
-                                    .addLast(new DelimiterBasedFrameDecoder(1024, delimiter1, delimiter2, delimiter3))
+                                    .addLast(new DelimiterBasedFrameDecoder(1024, delimiter1, delimiter2))
                                     .addLast(new ChannelInboundHandlerAdapter() {
                                         @Override
                                         public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -46,7 +45,7 @@ public class DelimiterBasedFrameDecoderTestServer {
                         }
                     });
             ChannelFuture f = b.bind(9000).sync();
-            System.out.println("Started FixedLengthFrameDecoderTestServer...");
+            System.out.println("Started DelimiterBasedFrameDecoderTestServer...");
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

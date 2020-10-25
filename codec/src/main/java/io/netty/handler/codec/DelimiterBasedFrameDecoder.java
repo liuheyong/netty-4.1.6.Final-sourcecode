@@ -236,29 +236,29 @@ public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
      *                          be created.
      */
     protected Object decode(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
-        //如果分隔符是\r\n则用lineBasedDecoder解码器解析
+        //如果lineBasedDecoder不为空则用lineBasedDecoder解码器解析
         if (lineBasedDecoder != null) {
             return lineBasedDecoder.decode(ctx, buffer);
         }
-        // 尝试所有定界符，然后选择产生最短帧的定界符。.
+        // 遍历所有定界符，然后选择产生最短帧的定界符。
         int minFrameLength = Integer.MAX_VALUE;
         ByteBuf minDelim = null;
         for (ByteBuf delim: delimiters) {
-            //依次找到每个分隔符在buffer中的最短帧的长度delim
+            //依次遍历每一个分隔符，找到产生的最短帧的长度和该分隔符delim
             int frameLength = indexOf(buffer, delim);
             if (frameLength >= 0 && frameLength < minFrameLength) {
                 minFrameLength = frameLength;
                 minDelim = delim;
             }
         }
-
+        //如果找到了分隔符delim
         if (minDelim != null) {
             int minDelimLength = minDelim.capacity();
             ByteBuf frame;
-
+            //如果找到分隔符delim 并且之前在丢弃模式中
             if (discardingTooLongFrame) {
-                // We've just finished discarding a very large frame.
-                // Go back to the initial state.
+                // 继续丢弃消息.
+                // 回到初始状态.
                 discardingTooLongFrame = false;
                 buffer.skipBytes(minFrameLength + minDelimLength);
 
@@ -269,14 +269,14 @@ public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
                 }
                 return null;
             }
-
+            //如果找到分隔符delim 并且之前不在丢弃模式中 判断是否超过每帧最大长度
             if (minFrameLength > maxFrameLength) {
                 // Discard read frame.
                 buffer.skipBytes(minFrameLength + minDelimLength);
                 fail(minFrameLength);
                 return null;
             }
-
+            //如果找到分隔符delim 并且之前不在丢弃模式中 没有超过每帧最大长度 那么就是正常读取消息 正常的流程
             if (stripDelimiter) {
                 frame = buffer.readRetainedSlice(minFrameLength);
                 buffer.skipBytes(minDelimLength);
@@ -285,19 +285,24 @@ public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
             }
 
             return frame;
+            //如果没有找到分隔符delim
         } else {
+            //如果没有找到分隔符delim 判断之前是否在丢弃模式中
             if (!discardingTooLongFrame) {
+                //如果没有找到分隔符delim 并且之前不在丢弃模式中 那么就判断是否超过每帧最大长度
                 if (buffer.readableBytes() > maxFrameLength) {
-                    // Discard the content of the buffer until a delimiter is found.
+                    // 丢弃缓冲区的内容，直到找到定界符.
                     tooLongFrameLength = buffer.readableBytes();
                     buffer.skipBytes(buffer.readableBytes());
                     discardingTooLongFrame = true;
+                    // 抛出异常
                     if (failFast) {
                         fail(tooLongFrameLength);
                     }
                 }
             } else {
-                // Still discarding the buffer since a delimiter is not found.
+                //如果没有找到分隔符delim 并且之前在丢弃模式中
+                // 由于找不到分隔符，因此仍在丢弃缓冲区.
                 tooLongFrameLength += buffer.readableBytes();
                 buffer.skipBytes(buffer.readableBytes());
             }
