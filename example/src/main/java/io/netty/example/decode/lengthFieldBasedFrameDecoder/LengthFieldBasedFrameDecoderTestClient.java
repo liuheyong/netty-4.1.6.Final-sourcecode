@@ -35,11 +35,10 @@ public class LengthFieldBasedFrameDecoderTestClient {
                         }
                     });
             ChannelFuture f = b.connect("127.0.0.1", 9000).sync();
-            System.out.println("Started DelimiterBasedFrameDecoderTestClient...");
+            System.out.println("Started LengthFieldBasedFrameDecoderTestClient...");
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();
         }
     }
-
 }

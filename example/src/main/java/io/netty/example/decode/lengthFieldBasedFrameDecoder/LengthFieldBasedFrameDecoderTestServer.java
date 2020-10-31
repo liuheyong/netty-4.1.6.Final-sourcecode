@@ -31,7 +31,7 @@ public class LengthFieldBasedFrameDecoderTestServer {
                         @Override
                         public void initChannel(SocketChannel ch) {
                             ch.pipeline()
-                                    .addLast(new LengthFieldBasedFrameDecoder(1024,0,8,0,0))
+                                    .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE,0,2,0,2))
                                     .addLast(new ChannelInboundHandlerAdapter() {
                                         @Override
                                         public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -44,12 +44,11 @@ public class LengthFieldBasedFrameDecoderTestServer {
                         }
                     });
             ChannelFuture f = b.bind(9000).sync();
-            System.out.println("Started DelimiterBasedFrameDecoderTestServer...");
+            System.out.println("Started LengthFieldBasedFrameDecoderTestServer...");
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
         }
     }
-
 }

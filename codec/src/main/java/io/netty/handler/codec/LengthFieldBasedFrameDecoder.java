@@ -183,29 +183,28 @@ import java.util.List;
  */
 public class LengthFieldBasedFrameDecoder extends ByteToMessageDecoder {
 
-    //====================核心属性=====================
-    //表示字节流表示的数据是大端还是小端，默认为大端
+    //=====================核心属性====================
+    //表示字节流的数据是大端还是小端，默认是大端
     private final ByteOrder byteOrder;
-    //最大帧长度
+    //表示读取每帧数据的最大阈值
     private final int maxFrameLength;
-    //表示长度字段偏移量
+    //表示长度域左边的偏移量
     private final int lengthFieldOffset;
-    //表示长度字段的具体字节数
+    //表示长度域的长度
     private final int lengthFieldLength;
-    //表示长度字段的具体字节数加上长度字段的偏移量
+    //表示长度域左边的偏移量+长度域的长度
     private final int lengthFieldEndOffset;
-    //是一个长度调节量
+    //表示长度域左边的偏移量+长度域的长度后面偏移量、调整量
     private final int lengthAdjustment;
-    //表示需要略过的字节数才是最终拿到的数据
+    //表示跳过多少字节后就能拿到数据域
     private final int initialBytesToStrip;
-    //failFast默认为true 读取到长度域代表的值大于最大长度时就抛出异常
-    //为false表示读取到长度域代表的所有值之后再抛出异常
+    //表示是否开启快速失败机制
     private final boolean failFast;
-    //是否正在丢弃
+    //表示是否开启丢弃模式、正在丢弃数据
     private boolean discardingTooLongFrame;
-    //丢弃的长度
+    //表示一共丢弃的字节数据
     private long tooLongFrameLength;
-    //要丢弃的字节
+    //表示每一次丢弃的字节数据
     private long bytesToDiscard;
 
     /**
@@ -368,75 +367,80 @@ public class LengthFieldBasedFrameDecoder extends ByteToMessageDecoder {
      *                          be created.
      */
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
-        //首先判断是否正在处于丢弃模式中，如果正在处于丢弃模式中，直接进行数据丢弃，直到数据丢弃完成——this.bytesToDiscard = 0
+        //首先判断是否正在处于丢弃模式中，如果正在处于丢弃模式中，直接进行数据丢弃
         if (discardingTooLongFrame) {
             long bytesToDiscard = this.bytesToDiscard;
             int localBytesToDiscard = (int) Math.min(bytesToDiscard, in.readableBytes());
+            //直接跳过指定的字节数据
             in.skipBytes(localBytesToDiscard);
             bytesToDiscard -= localBytesToDiscard;
             this.bytesToDiscard = bytesToDiscard;
             failIfNecessary(false);
         }
-        // 如果当前可读区域长度小于长度字段偏移量的大小，那就直接返回null
+        // 如果当前可读字节还未达到lengthFieldEndOffset大小，说明数据域中并没有可读内容，此时直接返回null
         if (in.readableBytes() < lengthFieldEndOffset) {
             return null;
         }
-        // 长度域的实际字节偏移
+        // 拿到实际的lengthFieldOffset
         int actualLengthFieldOffset = in.readerIndex() + lengthFieldOffset;
-        // 未调整过的包长度
+        // 拿到未调整过得数据包长度
         long frameLength = getUnadjustedFrameLength(in, actualLengthFieldOffset, lengthFieldLength, byteOrder);
-        //如果包长度为负数，则包之前的数据全部跳过
+        // 如果数据包长度为负数，直接跳过长度域并抛出异常
         if (frameLength < 0) {
             in.skipBytes(lengthFieldEndOffset);
-            throw new CorruptedFrameException(
-                    "negative pre-adjustment length field: " + frameLength);
+            throw new CorruptedFrameException("negative pre-adjustment length field: " + frameLength);
         }
-        // 此时包的长度为总的数据的长度之和
+        // 调整包的总长度
         frameLength += lengthAdjustment + lengthFieldEndOffset;
-        // 总的数据的长度之和还没有长度域长，直接抛出异常
+        // 包的总长度还没有长度域长，直接抛出异常
         if (frameLength < lengthFieldEndOffset) {
             in.skipBytes(lengthFieldEndOffset);
             throw new CorruptedFrameException(
                     "Adjusted frame length (" + frameLength + ") is less " +
                     "than lengthFieldEndOffset: " + lengthFieldEndOffset);
         }
-        // 总的数据的长度之和超出最大包长度，进入丢弃模式
+        // 数据包长度超出最大包长度，进入丢弃模式，总丢弃数据长度tooLongFrameLength
         if (frameLength > maxFrameLength) {
             long discard = frameLength - in.readableBytes();
             tooLongFrameLength = frameLength;
 
             if (discard < 0) {
                 // 缓冲区包含更多的字节，然后是frameLength，所以我们现在就可以丢弃所有字节
+                // 当前readableBytes达到frameLength，直接跳过frameLength个字节
                 in.skipBytes((int) frameLength);
             } else {
-                // 进入丢弃模式并丢弃到目前为止收到的所有内容。
+                // 当前可读字节未达到frameLength，说明后面未读到的字节也需要丢弃，进入丢弃模式
                 discardingTooLongFrame = true;
                 // bytesToDiscard表示还需要丢弃多少字节
                 bytesToDiscard = discard;
+                // 进入丢弃模式并丢弃到目前为止收到的所有内容.
                 in.skipBytes(in.readableBytes());
             }
             failIfNecessary(true);
             return null;
         }
 
-        // 永远不会溢出，因为它小于maxFrameLength
+        // frameLength永远不会溢出，因为它小于maxFrameLength
         int frameLengthInt = (int) frameLength;
         if (in.readableBytes() < frameLengthInt) {
             return null;
         }
 
+        // 如果返回数据包之前跳过的字节都大于frameLengthInt，说明数据异常，跳过现在包中的数据
         if (initialBytesToStrip > frameLengthInt) {
             in.skipBytes(frameLengthInt);
             throw new CorruptedFrameException(
                     "Adjusted frame length (" + frameLength + ") is less " +
                     "than initialBytesToStrip: " + initialBytesToStrip);
         }
+        // 正常跳过initialBytesToStrip字节
         in.skipBytes(initialBytesToStrip);
 
         // 提取帧数据
         int readerIndex = in.readerIndex();
         int actualFrameLength = frameLengthInt - initialBytesToStrip;
         ByteBuf frame = extractFrame(ctx, in, readerIndex, actualFrameLength);
+        // 调整读索引
         in.readerIndex(readerIndex + actualFrameLength);
         return frame;
     }
@@ -476,17 +480,19 @@ public class LengthFieldBasedFrameDecoder extends ByteToMessageDecoder {
     }
 
     private void failIfNecessary(boolean firstDetectionOfTooLongFrame) {
+        // 该丢弃的字节都已经丢弃完成，就开始重置丢弃状态，解除丢弃模式
         if (bytesToDiscard == 0) {
-            // Reset to the initial state and tell the handlers that
-            // the frame was too large.
             long tooLongFrameLength = this.tooLongFrameLength;
             this.tooLongFrameLength = 0;
+            //解除丢弃模式
             discardingTooLongFrame = false;
+            // 如果没有开启快速失败机制，或者开启快速失败机制并且第一次就发现了大包，抛出异常
             if (!failFast || failFast && firstDetectionOfTooLongFrame) {
                 fail(tooLongFrameLength);
             }
         } else {
-            // Keep discarding and notify handlers if necessary.
+            // 保持丢弃并在必要时通知处理程序。
+            // 如果设置了快速失败，并且第一次就发现了大包，抛出异常
             if (failFast && firstDetectionOfTooLongFrame) {
                 fail(tooLongFrameLength);
             }
