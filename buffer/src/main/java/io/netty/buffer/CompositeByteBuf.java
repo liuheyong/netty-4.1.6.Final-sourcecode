@@ -40,6 +40,7 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  * A virtual buffer which shows multiple buffers as a single merged buffer.  It is recommended to use
  * {@link ByteBufAllocator#compositeBuffer()} or {@link Unpooled#wrappedBuffer(ByteBuf...)} instead of calling the
  * constructor explicitly.
+ * 组合ByteBuf，逻辑上连续，实际物理地址不一定连续
  */
 public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements Iterable<ByteBuf> {
 
@@ -1672,7 +1673,8 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
         }
 
         void freeIfNecessary() {
-            buf.release(); // We should not get a NPE here. If so, it must be a bug.
+            // 我们不应该在这里得到NPE。如果是这样，那一定是一个错误。
+            buf.release();
         }
     }
 
