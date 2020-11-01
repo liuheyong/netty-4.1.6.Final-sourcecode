@@ -139,7 +139,7 @@ public class DefaultFileRegion extends AbstractReferenceCounted implements FileR
         if (refCnt() == 0) {
             throw new IllegalReferenceCountException(0);
         }
-        // Call open to make sure fc is initialized. This is a no-oop if we called it before.
+        // 调用open以确保fc已初始化。
         open();
 
         long written = file.transferTo(this.position + position, count, target);

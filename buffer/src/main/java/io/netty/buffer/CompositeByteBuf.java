@@ -255,7 +255,7 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
 
             int readableBytes = buffer.readableBytes();
 
-            // No need to consolidate - just add a component to the list.
+            // 无需合并-只需将组件添加到列表中.
             @SuppressWarnings("deprecation")
             Component c = new Component(buffer.order(ByteOrder.BIG_ENDIAN).slice());
             if (cIndex == components.size()) {
@@ -305,13 +305,14 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
         return this;
     }
 
+    //  addComponents0(increaseWriterIndex, components.size(), buffers, 0, buffers.length);
     private int addComponents0(boolean increaseWriterIndex, int cIndex, ByteBuf[] buffers, int offset, int len) {
         checkNotNull(buffers, "buffers");
         int i = offset;
         try {
+            // 校验Components index
             checkComponentIndex(cIndex);
-
-            // No need for consolidation
+            // 无需合并
             while (i < len) {
                 // Increment i now to prepare for the next iteration and prevent a duplicate release (addComponent0
                 // will release if an exception occurs, and we also release in the finally block here).
@@ -333,7 +334,7 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
                     try {
                         b.release();
                     } catch (Throwable ignored) {
-                        // ignore
+                        // 安静的释放ByteBuf
                     }
                 }
             }
@@ -393,19 +394,17 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
     }
 
     /**
-     * This should only be called as last operation from a method as this may adjust the underlying
-     * array of components and so affect the index etc.
+     * 这仅应被作为最后操作，因为这可能会调整底层的组件数组，从而影响索引等。
      */
     private void consolidateIfNeeded() {
-        // Consolidate if the number of components will exceed the allowed maximum by the current
-        // operation.
+        // 合并组件数是否超过当前操作允许的最大值。
         final int numComponents = components.size();
         if (numComponents > maxNumComponents) {
             final int capacity = components.get(numComponents - 1).endOffset;
 
             ByteBuf consolidated = allocBuffer(capacity);
 
-            // We're not using foreach to avoid creating an iterator.
+            // 我们没有使用foreach来避免创建迭代器。
             for (int i = 0; i < numComponents; i ++) {
                 Component c = components.get(i);
                 ByteBuf b = c.buf;

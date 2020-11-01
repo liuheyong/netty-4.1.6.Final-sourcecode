@@ -29,7 +29,7 @@ public class FileServerHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush("HELO: Type the path of the file to retrieve.\n");
+        ctx.writeAndFlush("HELLO: Type the path of the file to retrieve.\n");
     }
 
     @Override
@@ -50,10 +50,10 @@ public class FileServerHandler extends SimpleChannelInboundHandler<String> {
 
         ctx.write("OK: " + raf.length() + '\n');
         if (ctx.pipeline().get(SslHandler.class) == null) {
-            // SSL not enabled - can use zero-copy file transfer.
+            // 未启用SSL-可以使用零复制文件传输.
             ctx.write(new DefaultFileRegion(raf.getChannel(), 0, length));
         } else {
-            // SSL enabled - cannot use zero-copy file transfer.
+            // 启用S​​SL-无法使用零复制文件传输.
             ctx.write(new ChunkedFile(raf));
         }
         ctx.writeAndFlush("\n");
