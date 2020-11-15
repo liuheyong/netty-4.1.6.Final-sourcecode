@@ -784,19 +784,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
             if (outboundBuffer == null) {
-                // If the outboundBuffer is null we know the channel was closed and so
-                // need to fail the future right away. If it is not null the handling of the rest
-                // will be done in flush0()
-                // See https://github.com/netty/netty/issues/2362
+                //如果outboundBuffer为null，则该通道已关闭，因此需要立即使将来失效。
                 safeSetFailure(promise, WRITE_CLOSED_CHANNEL_EXCEPTION);
-                // release message now to prevent resource-leak
+                // 立即释放消息以防止资源泄漏
                 ReferenceCountUtil.release(msg);
                 return;
             }
 
             int size;
             try {
+                //过滤待发送的消息，只允许发送ByteBuf和FileRegion
                 msg = filterOutboundMessage(msg);
+                //预估待发送数据的大小
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
                     size = 0;
@@ -818,7 +817,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             if (outboundBuffer == null) {
                 return;
             }
-
+            //添加一个flush到这个ChannelOutboundBuffer，将在此之前添加的消息标记为flushed，将可以处理这些消息
             outboundBuffer.addFlush();
             flush0();
         }
@@ -826,24 +825,25 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         @SuppressWarnings("deprecation")
         protected void flush0() {
             if (inFlush0) {
-                // Avoid re-entrance
+                // 避免重复进入
                 return;
             }
-
+            // 没有数据，直接返回
             final ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
             if (outboundBuffer == null || outboundBuffer.isEmpty()) {
                 return;
             }
-
+            //正在刷新数据
             inFlush0 = true;
 
-            // Mark all pending write requests as failure if the channel is inactive.
+            //如果通道处于非活动状态，则将所有待处理的写请求标记为失败。
             if (!isActive()) {
                 try {
+                    //Channel已经打开
                     if (isOpen()) {
                         outboundBuffer.failFlushed(FLUSH0_NOT_YET_CONNECTED_EXCEPTION, true);
                     } else {
-                        // Do not trigger channelWritabilityChanged because the channel is closed already.
+                        // 不要触发channelWritabilityChanged，因为通道已经关闭。
                         outboundBuffer.failFlushed(FLUSH0_CLOSED_CHANNEL_EXCEPTION, false);
                     }
                 } finally {
@@ -853,6 +853,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             try {
+                //将Channel输出缓冲区中的数据通过socket传输给对端
                 doWrite(outboundBuffer);
             } catch (Throwable t) {
                 if (t instanceof IOException && config().isAutoClose()) {

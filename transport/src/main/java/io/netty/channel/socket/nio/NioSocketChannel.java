@@ -387,13 +387,18 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                 clearOpWrite();
                 break;
             }
+            //本次循环已经写出的字节数
             long writtenBytes = 0;
+            //本次循环是否写出了所有待写出的数据
             boolean done = false;
+            //是否需要设置SelectionKey.OP_WRITE事件
             boolean setOpWrite = false;
 
-            // Ensure the pending writes are made of ByteBufs only.
+            // 确保待写的写操作仅由ByteBufs
             ByteBuffer[] nioBuffers = in.nioBuffers();
+            //本次循环需要写出的ByteBuffer个数
             int nioBufferCnt = in.nioBufferCount();
+            //本次循环总共需要写出的数据的字节总数
             long expectedWrittenBytes = in.nioBufferSize();
             SocketChannel ch = javaChannel();
 
@@ -401,15 +406,18 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             // See https://github.com/netty/netty/issues/2761
             switch (nioBufferCnt) {
                 case 0:
-                    // We have something else beside ByteBuffers to write so fallback to normal writes.
+                    // 除了ByteBuffers之外，我们还有其他东西要写，所以可以回退到普通写操作。
                     super.doWrite(in);
                     return;
                 case 1:
-                    // Only one ByteBuf so use non-gathering write
+                    // 只有一个ByteBuf，因此使用非聚集写入
                     ByteBuffer nioBuffer = nioBuffers[0];
                     for (int i = config().getWriteSpinCount() - 1; i >= 0; i --) {
                         final int localWrittenBytes = ch.write(nioBuffer);
                         if (localWrittenBytes == 0) {
+                            //注册当前SocketChannel的写事件（SelectionKey.OP_WRITE）到对应的Selector为感兴趣的事件，
+                            //这样当写缓冲区有空间时，就会触发SelectionKey.OP_WRITE就绪事件， NioEventLoop的事件循环
+                            //在处理SelectionKey.OP_WRITE事件时会执行forceFlush()以继续发送外发送完的数据
                             setOpWrite = true;
                             break;
                         }
@@ -422,14 +430,19 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     }
                     break;
                 default:
+                    // 多个ByteBuf，因此使用聚集写入 config().getWriteSpinCount()=16
                     for (int i = config().getWriteSpinCount() - 1; i >= 0; i --) {
                         final long localWrittenBytes = ch.write(nioBuffers, 0, nioBufferCnt);
+                        //ch.write操作会返回本次写操作写出的字节数，但该方法返回0时，即localWrittenBytes为0，
+                        // 则说明底层的写缓冲区已经满了(这里应该指的是linux底层的写缓冲区满了)，这是就会将
+                        // setOpWrite置为true，此时因为数据还没写完done还是false
                         if (localWrittenBytes == 0) {
                             setOpWrite = true;
                             break;
                         }
                         expectedWrittenBytes -= localWrittenBytes;
                         writtenBytes += localWrittenBytes;
+                        //如果16次写入之后还有数据没有写入，那么done就位false
                         if (expectedWrittenBytes == 0) {
                             done = true;
                             break;
@@ -438,11 +451,11 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     break;
             }
 
-            // Release the fully written buffers, and update the indexes of the partially written buffer.
+            // 释放完全写入的缓冲区，并更新部分写入的缓冲区的索引。
             in.removeBytes(writtenBytes);
 
             if (!done) {
-                // Did not write all buffers completely.
+                //没有完全写入所有缓冲区。
                 incompleteWrite(setOpWrite);
                 break;
             }

@@ -58,17 +58,18 @@ public final class ChannelOutboundBuffer {
         }
     };
 
+    //NioSocketChannel
     private final Channel channel;
 
     // Entry(flushedEntry) --> ... Entry(unflushedEntry) --> ... Entry(tailEntry)
-    //
-    // The Entry that is the first in the linked-list structure that was flushed
+
+    // 调用flush()操作时将会进行刷新的ByteBuf的链表头
     private Entry flushedEntry;
-    // The Entry which is the first unflushed in the linked-list structure
+    // 还未刷新的ByteBuf的链表头
     private Entry unflushedEntry;
-    // The Entry which represents the tail of the buffer
+    // 始终指向最后一个Entry对象
     private Entry tailEntry;
-    // The number of flushed entries that are not written yet
+    // 还未写入的刷新Entry对象数量
     private int flushed;
 
     private int nioBufferCount;
@@ -147,16 +148,17 @@ public final class ChannelOutboundBuffer {
                 flushedEntry = entry;
             }
             do {
+                //计数器
                 flushed ++;
                 if (!entry.promise.setUncancellable()) {
-                    // Was cancelled so make sure we free up memory and notify about the freed bytes
+                    // 已取消，因此请确保我们释放内存并通知释放的字节
                     int pending = entry.cancel();
                     decrementPendingOutboundBytes(pending, false, true);
                 }
                 entry = entry.next;
             } while (entry != null);
 
-            // All flushed so reset unflushedEntry
+            // 所有已刷新，因此重置unflushedEntry
             unflushedEntry = null;
         }
     }
@@ -278,6 +280,12 @@ public final class ChannelOutboundBuffer {
         return remove0(cause, true);
     }
 
+    /**
+    * @Date:  2020-11-14
+    * @Param:
+    * @return:
+    * @Description:  清除entry
+    */
     private boolean remove0(Throwable cause, boolean notifyWritability) {
         Entry e = flushedEntry;
         if (e == null) {
@@ -370,6 +378,9 @@ public final class ChannelOutboundBuffer {
      * {@link AbstractChannel#doWrite(ChannelOutboundBuffer)}.
      * Refer to {@link NioSocketChannel#doWrite(ChannelOutboundBuffer)} for an example.
      * </p>
+     * 获取所有待写出的ByteBuffer，它会将ChannelOutboundBuffer中所有待写出的ByteBuf转换成JDK Bytebuffer（因为，底层依旧是基于JDK NIO的网络传输，所有最终传输的还是JDK
+     * 的ByteBuffer对象）。它依次出去每个待写的ByteBuf，然后根据ByteBuf的信息构建一个ByteBuffer（这里的ByteBuf是一个堆外ByteBuf，因此构建出来的ByteBuffer也是一个堆外的ByteBuffer
+     * ），并设置该ByteBuffer的readerIndex、readableBytes的值为ByteBuf对应的值。然后返回构建好的ByteBuffer[]数组。
      */
     public ByteBuffer[] nioBuffers() {
         long nioBufferSize = 0;
@@ -766,12 +777,16 @@ public final class ChannelOutboundBuffer {
 
         private final Handle<Entry> handle;
         Entry next;
+        //原始消息对象的引用
         Object msg;
         ByteBuffer[] bufs;
         ByteBuffer buf;
+        //异步回调注册到promise上的listener，通知成功或者失败
         ChannelPromise promise;
         long progress;
+        //对数据本身大小的记录
         long total;
+        //msg+bufs+buf待发送数据总大小
         int pendingSize;
         int count = -1;
         boolean cancelled;

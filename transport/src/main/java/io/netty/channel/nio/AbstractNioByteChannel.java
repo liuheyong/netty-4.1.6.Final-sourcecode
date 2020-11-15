@@ -244,6 +244,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
     @Override
     protected final Object filterOutboundMessage(Object msg) {
+        //只有ByteBuf（堆 or 非堆）以及 FileRegion可以进行最终的Socket网络传输，其他类型的数据是不支持的
         if (msg instanceof ByteBuf) {
             ByteBuf buf = (ByteBuf) msg;
             if (buf.isDirect()) {
@@ -266,7 +267,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         if (setOpWrite) {
             setOpWrite();
         } else {
-            // Schedule flush again later so other tasks can be picked up in the meantime
+            // 安排稍后再次刷新，以便在此期间可以执行其他任务
             Runnable flushTask = this.flushTask;
             if (flushTask == null) {
                 flushTask = this.flushTask = new Runnable() {

@@ -805,7 +805,9 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     private void invokeWriteAndFlush(Object msg, ChannelPromise promise) {
         if (invokeHandler()) {
+            //将消息放入输出缓冲区中（ChannelOutboundBuffer）
             invokeWrite0(msg, promise);
+            //将输出缓冲区中的数据通过socket发送到网络中
             invokeFlush0();
         } else {
             writeAndFlush(msg, promise);
@@ -835,6 +837,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
+        //写入数据是异步操作，放入Promise可以写完成后通知成功或者失败结果
         return writeAndFlush(msg, newPromise());
     }
 

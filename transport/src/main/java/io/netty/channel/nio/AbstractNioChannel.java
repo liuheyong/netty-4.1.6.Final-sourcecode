@@ -353,9 +353,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
         @Override
         protected final void flush0() {
-            // Flush immediately only when there's no pending flush.
-            // If there's a pending flush operation, event loop will call forceFlush() later,
-            // and thus there's no need to call it now.
+            // 仅在没有挂起才立即刷新。 如果有一个挂起的刷新操作，则事件循环稍后将调用forceFlush（），因此现在无需调用它。
             if (isFlushPending()) {
                 return;
             }
