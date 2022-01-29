@@ -20,11 +20,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.memcache.binary.BinaryMemcacheOpcodes;
-import io.netty.handler.codec.memcache.binary.BinaryMemcacheRequest;
-import io.netty.handler.codec.memcache.binary.DefaultBinaryMemcacheRequest;
-import io.netty.handler.codec.memcache.binary.DefaultFullBinaryMemcacheRequest;
-import io.netty.handler.codec.memcache.binary.FullBinaryMemcacheResponse;
+import io.netty.handler.codec.memcache.binary.*;
 import io.netty.util.CharsetUtil;
 
 public class MemcacheClientHandler extends ChannelDuplexHandler {
