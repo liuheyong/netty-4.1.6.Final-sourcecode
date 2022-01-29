@@ -95,7 +95,6 @@ public final class JavassistTypeParameterMatcherGenerator {
         if (type.isArray()) {
             return typeName(type.getComponentType()) + "[]";
         }
-
         return type.getName();
     }
 
